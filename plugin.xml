@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<plugin xmlns="http://apache.org/cordova/ns/plugins/1.0"
+        xmlns:android="http://schemas.android.com/apk/res/android"
+        id="cordova-plugin-nativeplayer"
+        version="1.0.0">
+    
+    <name>NativePlayer</name>
+    <description>Cordova Native Video Player Plugin</description>
+    <license>MIT</license>
+    <keywords>cordova,video,player,native,exoplayer,avplayer</keywords>
+    
+    <js-module src="www/NativePlayer.js" name="NativePlayer">
+        <clobbers target="NativePlayer" />
+    </js-module>
+    
+    <!-- Android Configuration -->
+    <platform name="android">
+        <config-file target="res/xml/config.xml" parent="/*">
+            <feature name="NativePlayer">
+                <param name="android-package" value="com.example.plugin.NativePlayer"/>
+            </feature>
+        </config-file>
+        
+        <source-file src="src/android/NativePlayer.java" target-dir="src/com/example/plugin" />
+        
+        <framework src="com.google.android.exoplayer:exoplayer-core:2.18.1" />
+        <framework src="com.google.android.exoplayer:exoplayer-ui:2.18.1" />
+        
+        <config-file target="AndroidManifest.xml" parent="/*">
+            <uses-permission android:name="android.permission.INTERNET" />
+        </config-file>
+    </platform>
+    
+    <!-- iOS Configuration -->
+    <platform name="ios">
+        <config-file target="config.xml" parent="/*">
+            <feature name="NativePlayer">
+                <param name="ios-package" value="NativePlayer"/>
+            </feature>
+        </config-file>
+        
+        <source-file src="src/ios/NativePlayer.m" />
+        
+        <framework src="AVFoundation.framework" />
+    </platform>
+</plugin>
