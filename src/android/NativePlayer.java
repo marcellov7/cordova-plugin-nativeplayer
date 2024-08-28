@@ -242,7 +242,6 @@ public class NativePlayer extends CordovaPlugin {
 
         // Setup progress event
         player.addAnalyticsListener(new AnalyticsListener() {
-            @Override
             public void onLoadCompleted(EventTime eventTime, LoadEventInfo loadEventInfo, MediaPeriodId mediaPeriodId) {
                 updateBufferProgress();
             }
@@ -430,7 +429,6 @@ public class NativePlayer extends CordovaPlugin {
         }
     }
 
-    @Override
     public void onPictureInPictureModeChanged(boolean isInPictureInPictureMode, Configuration newConfig) {
         try {
             JSONObject pipObj = new JSONObject();
