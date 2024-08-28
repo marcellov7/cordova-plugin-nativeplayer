@@ -1,0 +1,30 @@
+{
+    "name": "cordova-plugin-nativeplayer",
+    "version": "1.0.0",
+    "description": "The NativePlayer plugin provides a native video player implementation for Cordova applications. It uses ExoPlayer on Android and AVPlayer on iOS, offering a high-performance and feature-rich video playback experience.",
+    "scripts": {
+      "test": "echo \"Error: no test specified\" && exit 1"
+    },
+    "repository": {
+      "type": "git",
+      "url": "git+https://github.com/marcellov7/cordova-plugin-nativeplayer.git"
+    },
+    "keywords": [
+      "ecosystem:cordova",
+      "cordova",
+      "cordova-plugin",
+      "player",
+      "player-ios",
+      "player-android",
+      "android",
+      "video",
+      "video-player",
+      "ios"
+    ],
+    "author": "marcellov7",
+    "license": "Apache-2.0",
+    "bugs": {
+      "url": "https://github.com/marcellov7/cordova-plugin-nativeplayer/issues"
+    },
+    "homepage": "https://github.com/marcellov7/ccordova-plugin-nativeplayer#readme"
+  }
