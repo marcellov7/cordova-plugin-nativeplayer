@@ -16,6 +16,7 @@ import android.net.NetworkCapabilities;
 import android.net.NetworkRequest;
 import android.os.Build;
 import android.os.Handler;
+import android.os.PowerManager;
 import android.util.Rational;
 import android.view.View;
 import android.view.ViewGroup;
@@ -24,6 +25,7 @@ import android.widget.FrameLayout;
 import com.google.android.exoplayer2.*;
 import com.google.android.exoplayer2.source.TrackGroupArray;
 import com.google.android.exoplayer2.trackselection.TrackSelectionArray;
+import com.google.android.exoplayer2.trackselection.TrackSelectionOverride;
 import com.google.android.exoplayer2.ui.PlayerView;
 import com.google.android.exoplayer2.video.VideoSize;
 
@@ -35,14 +37,15 @@ public class NativePlayer extends CordovaPlugin {
     private Handler handler;
     private ConnectivityManager.NetworkCallback networkCallback;
     private boolean isFullscreen = false;
+    private String divId;
 
     @Override
     public boolean execute(String action, JSONArray args, CallbackContext callbackContext) throws JSONException {
         this.callbackContext = callbackContext;
         if (action.equals("createPlayer")) {
             String url = args.getString(0);
-            String divId = args.getString(1);
-            this.createPlayer(url, divId);
+            this.divId = args.getString(1);
+            this.createPlayer(url, this.divId);
             return true;
         } else if (action.equals("play")) {
             this.play();
@@ -70,6 +73,26 @@ public class NativePlayer extends CordovaPlugin {
             return true;
         } else if (action.equals("togglePictureInPicture")) {
             this.togglePictureInPicture();
+            return true;
+        } else if (action.equals("setPreferredAudioLanguage")) {
+            String language = args.getString(0);
+            this.setPreferredAudioLanguage(language);
+            return true;
+        } else if (action.equals("setPreferredTextLanguage")) {
+            String language = args.getString(0);
+            this.setPreferredTextLanguage(language);
+            return true;
+        } else if (action.equals("enableSubtitles")) {
+            boolean enable = args.getBoolean(0);
+            this.enableSubtitles(enable);
+            return true;
+        } else if (action.equals("setVideoQuality")) {
+            String quality = args.getString(0);
+            this.setVideoQuality(quality);
+            return true;
+        } else if (action.equals("setBackgroundPlayback")) {
+            boolean enabled = args.getBoolean(0);
+            this.setBackgroundPlayback(enabled);
             return true;
         }
         return false;
@@ -423,9 +446,8 @@ public class NativePlayer extends CordovaPlugin {
         }
         super.onDestroy();
     }
-}
 
-@Override
+    @Override
     public void onConfigurationChanged(Configuration newConfig) {
         super.onConfigurationChanged(newConfig);
         if (newConfig.orientation == Configuration.ORIENTATION_LANDSCAPE ||

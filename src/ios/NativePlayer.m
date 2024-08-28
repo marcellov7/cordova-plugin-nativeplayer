@@ -21,12 +21,12 @@
                                              selector:@selector(playerItemDidReachEnd:)
                                                  name:AVPlayerItemDidPlayToEndTimeNotification
                                                object:nil];
-    
+
     [[NSNotificationCenter defaultCenter] addObserver:self
                                              selector:@selector(applicationWillResignActive:)
                                                  name:UIApplicationWillResignActiveNotification
                                                object:nil];
-    
+
     [[NSNotificationCenter defaultCenter] addObserver:self
                                              selector:@selector(applicationDidBecomeActive:)
                                                  name:UIApplicationDidBecomeActiveNotification
@@ -37,18 +37,18 @@
     self.callbackId = command.callbackId;
     NSString* url = [command.arguments objectAtIndex:0];
     self.divId = [command.arguments objectAtIndex:1];
-    
+
     dispatch_async(dispatch_get_main_queue(), ^{
         NSURL *videoURL = [NSURL URLWithString:url];
         AVPlayerItem *playerItem = [AVPlayerItem playerItemWithURL:videoURL];
         self.player = [AVPlayer playerWithPlayerItem:playerItem];
         self.playerLayer = [AVPlayerLayer playerLayerWithPlayer:self.player];
         [self.webView.superview.layer addSublayer:self.playerLayer];
-        
+
         [self setupPlayerListeners];
         [self updatePlayerPosition];
         [self setupPictureInPicture];
-        
+
         CDVPluginResult* pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK];
         [pluginResult setKeepCallbackAsBool:YES];
         [self.commandDelegate sendPluginResult:pluginResult callbackId:self.callbackId];
@@ -74,7 +74,7 @@
                                              selector:@selector(playerItemFailedToPlayToEndTime:)
                                                  name:AVPlayerItemFailedToPlayToEndTimeNotification
                                                object:nil];
-    
+
     [[NSNotificationCenter defaultCenter] addObserver:self
                                              selector:@selector(audioSessionInterruption:)
                                                  name:AVAudioSessionInterruptionNotification
@@ -153,7 +153,7 @@
     }
     NSMutableDictionary *event = [NSMutableDictionary dictionaryWithDictionary:body];
     [event setObject:name forKey:@"type"];
-    
+
     CDVPluginResult* pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK messageAsDictionary:event];
     [pluginResult setKeepCallbackAsBool:YES];
     [self.commandDelegate sendPluginResult:pluginResult callbackId:self.callbackId];
@@ -266,7 +266,7 @@
     }
     CDVPluginResult* pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK];
     [self.commandDelegate sendPluginResult:pluginResult callbackId:command.callbackId];
-    }
+}
 
 - (void)setPreferredTextLanguage:(CDVInvokedUrlCommand*)command {
     NSString* language = [command.arguments objectAtIndex:0];
@@ -340,7 +340,7 @@
     if (playerItem) {
         NSMutableDictionary *mediaInfo = [NSMutableDictionary dictionary];
         [mediaInfo setObject:@(CMTimeGetSeconds(playerItem.duration)) forKey:@"duration"];
-        
+
         NSArray *metadataItems = playerItem.asset.commonMetadata;
         for (AVMetadataItem *item in metadataItems) {
             if ([item.commonKey isEqualToString:AVMetadataCommonKeyTitle]) {
@@ -351,7 +351,7 @@
                 [mediaInfo setObject:item.value forKey:@"album"];
             }
         }
-        
+
         [self sendEventWithName:@"mediaInfo" body:mediaInfo];
     }
 }
@@ -377,11 +377,11 @@
     [self.player.currentItem removeObserver:self forKeyPath:@"status"];
     [self.player.currentItem removeObserver:self forKeyPath:@"loadedTimeRanges"];
     [self.player.currentItem removeObserver:self forKeyPath:@"presentationSize"];
-    
+
     if (self.timeObserver) {
         [self.player removeTimeObserver:self.timeObserver];
     }
-    
+
     [[NSNotificationCenter defaultCenter] removeObserver:self];
 }
 
