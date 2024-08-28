@@ -224,6 +224,9 @@ public class NativePlayer extends CordovaPlugin {
                 sendEvent(isLoading ? "loadStart" : "loadedData", null);
             }
 
+            public void onMediaItemTransition(@Nullable MediaItem mediaItem, int reason) {
+                sendEvent("loadedMetadata", null);
+            }
         });
 
         // Setup timeUpdate event
@@ -583,12 +586,12 @@ public class NativePlayer extends CordovaPlugin {
     public void setBackgroundPlayback(boolean enabled) {
         if (player != null) {
             player.setHandleAudioBecomingNoisy(!enabled);
-            
+
             PowerManager powerManager = (PowerManager) cordova.getActivity().getSystemService(Context.POWER_SERVICE);
             if (wakeLock == null) {
                 wakeLock = powerManager.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "NativePlayer:WakeLock");
             }
-            
+
             if (enabled) {
                 if (!wakeLock.isHeld()) {
                     wakeLock.acquire();
