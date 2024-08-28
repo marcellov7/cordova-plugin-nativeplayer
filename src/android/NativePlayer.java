@@ -26,6 +26,7 @@ import android.widget.FrameLayout;
 import androidx.annotation.Nullable;
 
 import com.google.android.exoplayer2.*;
+import com.google.android.exoplayer2.C;
 import com.google.android.exoplayer2.source.TrackGroupArray;
 import com.google.android.exoplayer2.trackselection.TrackSelectionArray;
 import com.google.android.exoplayer2.trackselection.TrackSelectionOverride;
@@ -223,10 +224,6 @@ public class NativePlayer extends CordovaPlugin {
                 sendEvent(isLoading ? "loadStart" : "loadedData", null);
             }
 
-            @Override
-            public void onMediaItemTransition(@Nullable MediaItem mediaItem, int reason) {
-                sendEvent("loadedMetadata", null);
-            }
         });
 
         // Setup timeUpdate event
@@ -272,7 +269,7 @@ public class NativePlayer extends CordovaPlugin {
 
     private void handleTrackChange(Tracks tracks) {
         for (Tracks.Group trackGroup : tracks.getGroups()) {
-            if (trackGroup.getTrackType() == C.TRACK_TYPE_VIDEO) {
+            if (trackGroup.getType() == C.TRACK_TYPE_VIDEO) {
                 try {
                     JSONObject trackObj = new JSONObject();
                     trackObj.put("track", Format.toLogString(trackGroup.getMediaTrackGroup().getFormat(0)));
@@ -280,7 +277,7 @@ public class NativePlayer extends CordovaPlugin {
                 } catch (JSONException e) {
                     e.printStackTrace();
                 }
-            } else if (trackGroup.getTrackType() == C.TRACK_TYPE_AUDIO) {
+            } else if (trackGroup.getType() == C.TRACK_TYPE_AUDIO) {
                 try {
                     JSONObject trackObj = new JSONObject();
                     trackObj.put("track", Format.toLogString(trackGroup.getMediaTrackGroup().getFormat(0)));
@@ -288,7 +285,7 @@ public class NativePlayer extends CordovaPlugin {
                 } catch (JSONException e) {
                     e.printStackTrace();
                 }
-            } else if (trackGroup.getTrackType() == C.TRACK_TYPE_TEXT) {
+            } else if (trackGroup.getType() == C.TRACK_TYPE_TEXT) {
                 try {
                     JSONObject trackObj = new JSONObject();
                     trackObj.put("track", Format.toLogString(trackGroup.getMediaTrackGroup().getFormat(0)));
@@ -459,7 +456,6 @@ public class NativePlayer extends CordovaPlugin {
         super.onDestroy();
     }
 
-    @Override
     public void onConfigurationChanged(Configuration newConfig) {
         super.onConfigurationChanged(newConfig);
         if (newConfig.orientation == Configuration.ORIENTATION_LANDSCAPE ||
