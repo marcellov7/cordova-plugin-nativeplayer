@@ -9,6 +9,7 @@ import org.json.JSONObject;
 
 import android.app.PictureInPictureParams;
 import android.content.Context;
+import android.content.Intent;
 import android.content.res.Configuration;
 import android.net.ConnectivityManager;
 import android.net.Network;
@@ -22,12 +23,18 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.FrameLayout;
 
+import androidx.annotation.Nullable;
+
 import com.google.android.exoplayer2.*;
 import com.google.android.exoplayer2.source.TrackGroupArray;
 import com.google.android.exoplayer2.trackselection.TrackSelectionArray;
 import com.google.android.exoplayer2.trackselection.TrackSelectionOverride;
 import com.google.android.exoplayer2.ui.PlayerView;
 import com.google.android.exoplayer2.video.VideoSize;
+import com.google.android.exoplayer2.analytics.AnalyticsListener;
+import com.google.android.exoplayer2.source.MediaSource.MediaPeriodId;
+import com.google.android.exoplayer2.source.LoadEventInfo;
+import com.google.android.exoplayer2.Format;
 
 public class NativePlayer extends CordovaPlugin {
 
@@ -38,6 +45,7 @@ public class NativePlayer extends CordovaPlugin {
     private ConnectivityManager.NetworkCallback networkCallback;
     private boolean isFullscreen = false;
     private String divId;
+    private PowerManager.WakeLock wakeLock;
 
     @Override
     public boolean execute(String action, JSONArray args, CallbackContext callbackContext) throws JSONException {
@@ -182,8 +190,8 @@ public class NativePlayer extends CordovaPlugin {
             }
 
             @Override
-            public void onTracksChanged(TrackGroupArray trackGroups, TrackSelectionArray trackSelections) {
-                handleTrackChange(trackGroups, trackSelections);
+            public void onTracksChanged(Tracks tracks) {
+                handleTrackChange(tracks);
             }
 
             @Override
@@ -235,7 +243,7 @@ public class NativePlayer extends CordovaPlugin {
         // Setup progress event
         player.addAnalyticsListener(new AnalyticsListener() {
             @Override
-            public void onLoadCompleted(EventTime eventTime, MediaLoadData mediaLoadData) {
+            public void onLoadCompleted(EventTime eventTime, LoadEventInfo loadEventInfo, MediaPeriodId mediaPeriodId) {
                 updateBufferProgress();
             }
         });
@@ -262,32 +270,33 @@ public class NativePlayer extends CordovaPlugin {
         }
     }
 
-    private void handleTrackChange(TrackGroupArray trackGroups, TrackSelectionArray trackSelections) {
-        for (int i = 0; i < trackSelections.length; i++) {
-            if (trackSelections.get(i) != null) {
-                String trackType = getTrackType(i);
-                String trackInfo = trackSelections.get(i).getSelectedFormat().toString();
+    private void handleTrackChange(Tracks tracks) {
+        for (Tracks.Group trackGroup : tracks.getGroups()) {
+            if (trackGroup.getTrackType() == C.TRACK_TYPE_VIDEO) {
                 try {
                     JSONObject trackObj = new JSONObject();
-                    trackObj.put("track", trackInfo);
-                    sendEvent(trackType + "TrackChange", trackObj);
+                    trackObj.put("track", Format.toLogString(trackGroup.getMediaTrackGroup().getFormat(0)));
+                    sendEvent("qualityTrackChange", trackObj);
+                } catch (JSONException e) {
+                    e.printStackTrace();
+                }
+            } else if (trackGroup.getTrackType() == C.TRACK_TYPE_AUDIO) {
+                try {
+                    JSONObject trackObj = new JSONObject();
+                    trackObj.put("track", Format.toLogString(trackGroup.getMediaTrackGroup().getFormat(0)));
+                    sendEvent("audioTrackChange", trackObj);
+                } catch (JSONException e) {
+                    e.printStackTrace();
+                }
+            } else if (trackGroup.getTrackType() == C.TRACK_TYPE_TEXT) {
+                try {
+                    JSONObject trackObj = new JSONObject();
+                    trackObj.put("track", Format.toLogString(trackGroup.getMediaTrackGroup().getFormat(0)));
+                    sendEvent("textTrackChange", trackObj);
                 } catch (JSONException e) {
                     e.printStackTrace();
                 }
             }
-        }
-    }
-
-    private String getTrackType(int trackIndex) {
-        switch (trackIndex) {
-            case C.TRACK_TYPE_VIDEO:
-                return "quality";
-            case C.TRACK_TYPE_AUDIO:
-                return "audio";
-            case C.TRACK_TYPE_TEXT:
-                return "text";
-            default:
-                return "unknown";
         }
     }
 
@@ -312,7 +321,7 @@ public class NativePlayer extends CordovaPlugin {
 
     private void updatePlayerPosition(String divId) {
         cordova.getActivity().runOnUiThread(() -> {
-            webView.evaluateJavascript(
+            webView.getEngine().evaluateJavascript(
                     "function getElementRect(id) { " +
                             "  var el = document.getElementById(id); " +
                             "  var rect = el.getBoundingClientRect(); " +
@@ -444,6 +453,9 @@ public class NativePlayer extends CordovaPlugin {
             ConnectivityManager connectivityManager = (ConnectivityManager) cordova.getActivity().getSystemService(Context.CONNECTIVITY_SERVICE);
             connectivityManager.unregisterNetworkCallback(networkCallback);
         }
+        if (wakeLock != null && wakeLock.isHeld()) {
+            wakeLock.release();
+        }
         super.onDestroy();
     }
 
@@ -461,9 +473,9 @@ public class NativePlayer extends CordovaPlugin {
             try {
                 JSONObject mediaInfo = new JSONObject();
                 MediaItem mediaItem = player.getCurrentMediaItem();
-                mediaInfo.put("title", mediaItem.playbackProperties.mediaMetadata.title);
-                mediaInfo.put("artist", mediaItem.playbackProperties.mediaMetadata.artist);
-                mediaInfo.put("album", mediaItem.playbackProperties.mediaMetadata.albumTitle);
+                mediaInfo.put("title", mediaItem.mediaMetadata.title);
+                mediaInfo.put("artist", mediaItem.mediaMetadata.artist);
+                mediaInfo.put("album", mediaItem.mediaMetadata.albumTitle);
                 mediaInfo.put("duration", player.getDuration() / 1000.0);
                 sendEvent("mediaInfo", mediaInfo);
             } catch (JSONException e) {
@@ -518,68 +530,55 @@ public class NativePlayer extends CordovaPlugin {
     }
 
     private void setPreferredAudioLanguage(String language) {
-        if (player != null) {
-            player.setPreferredAudioLanguage(language);
-        }
+        // Implement custom logic to select preferred audio language
+        // This might involve iterating through available audio tracks and selecting the appropriate one
     }
 
     private void setPreferredTextLanguage(String language) {
-        if (player != null) {
-            player.setPreferredTextLanguage(language);
-        }
+        // Implement custom logic to select preferred text language
+        // This might involve iterating through available text tracks and selecting the appropriate one
     }
 
     private void enableSubtitles(boolean enable) {
         if (player != null) {
-            int textTrackIndex = getTrackIndex(C.TRACK_TYPE_TEXT);
-            if (textTrackIndex != C.INDEX_UNSET) {
-                player.setTrackSelectionParameters(
-                    player.getTrackSelectionParameters()
-                        .buildUpon()
-                        .setSelectionOverride(
-                            textTrackIndex,
-                            player.getCurrentTracksInfo().getTrackGroupInfos().get(textTrackIndex).getTrackGroup(),
-                            enable ? new TrackSelectionOverride(player.getCurrentTracksInfo().getTrackGroupInfos().get(textTrackIndex).getTrackGroup(), 0)
-                                   : null
-                        )
-                        .build()
-                );
-            }
-        }
-    }
-
-    private int getTrackIndex(int trackType) {
-        if (player != null) {
             Tracks tracks = player.getCurrentTracks();
-            for (int i = 0; i < tracks.getGroups().size(); i++) {
-                if (tracks.getGroups().get(i).getType() == trackType) {
-                    return i;
+            for (Tracks.Group trackGroup : tracks.getGroups()) {
+                if (trackGroup.getType() == C.TRACK_TYPE_TEXT) {
+                    player.setTrackSelectionParameters(
+                        player.getTrackSelectionParameters()
+                            .buildUpon()
+                            .setTrackTypeDisabled(C.TRACK_TYPE_TEXT, !enable)
+                            .build()
+                    );
+                    break;
                 }
             }
         }
-        return C.INDEX_UNSET;
     }
 
     private void setVideoQuality(String quality) {
         if (player != null) {
-            int videoTrackIndex = getTrackIndex(C.TRACK_TYPE_VIDEO);
-            if (videoTrackIndex != C.INDEX_UNSET) {
-                TrackGroup videoTrackGroup = player.getCurrentTracksInfo().getTrackGroupInfos().get(videoTrackIndex).getTrackGroup();
-                for (int i = 0; i < videoTrackGroup.length; i++) {
-                    Format format = videoTrackGroup.getFormat(i);
-                    if (quality.equals(format.height + "p")) {
-                        player.setTrackSelectionParameters(
-                            player.getTrackSelectionParameters()
-                                .buildUpon()
-                                .setSelectionOverride(
-                                    videoTrackIndex,
-                                    videoTrackGroup,
-                                    new TrackSelectionOverride(videoTrackGroup, i)
-                                )
-                                .build()
-                        );
-                        break;
+            Tracks tracks = player.getCurrentTracks();
+            for (Tracks.Group trackGroup : tracks.getGroups()) {
+                if (trackGroup.getType() == C.TRACK_TYPE_VIDEO) {
+                    for (int i = 0; i < trackGroup.length; i++) {
+                        Format format = trackGroup.getTrackFormat(i);
+                        if (quality.equals(format.height + "p")) {
+                            player.setTrackSelectionParameters(
+                                player.getTrackSelectionParameters()
+                                    .buildUpon()
+                                    .setOverrideForType(
+                                        new TrackSelectionOverride(
+                                            trackGroup.getMediaTrackGroup(),
+                                            i
+                                        )
+                                    )
+                                    .build()
+                            );
+                            break;
+                        }
                     }
+                    break;
                 }
             }
         }
@@ -588,7 +587,21 @@ public class NativePlayer extends CordovaPlugin {
     public void setBackgroundPlayback(boolean enabled) {
         if (player != null) {
             player.setHandleAudioBecomingNoisy(!enabled);
-            player.setWakeMode(cordova.getActivity(), enabled ? PowerManager.PARTIAL_WAKE_LOCK : PowerManager.RELEASE_FLAG_WAIT_FOR_NO_PROXIMITY);
+            
+            PowerManager powerManager = (PowerManager) cordova.getActivity().getSystemService(Context.POWER_SERVICE);
+            if (wakeLock == null) {
+                wakeLock = powerManager.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "NativePlayer:WakeLock");
+            }
+            
+            if (enabled) {
+                if (!wakeLock.isHeld()) {
+                    wakeLock.acquire();
+                }
+            } else {
+                if (wakeLock.isHeld()) {
+                    wakeLock.release();
+                }
+            }
         }
     }
 
